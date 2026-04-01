@@ -4,12 +4,16 @@ version = "0.1.0"
 description = ""
 authors = ["jhonvalderrama <jhonvalderrama@aceup.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
 openai = "^1.76.2"
 pydantic-settings = "^2.9.1"
 pytest = "^8.3.5"
+httpx = "^0.28.1"
+uvicorn = {extras = ["standard"], version = "^0.42.0"}
+fastapi = "^0.135.3"
 
 
 [build-system]
