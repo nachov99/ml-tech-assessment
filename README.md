@@ -51,3 +51,9 @@ For test coverage report:
 ```bash
 pytest --cov
 ```
+
+## Running the API
+
+```bash
+uvicorn app.main:app --reload
+```
