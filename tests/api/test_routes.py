@@ -3,16 +3,16 @@ from unittest.mock import MagicMock, AsyncMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.routes import router, init_router
+from app.api.routes import router, get_service
 from app.domain.models import TranscriptAnalysis
 
 
 @pytest.fixture
 def client():
     service = MagicMock()
-    init_router(service)
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[get_service] = lambda: service
     yield TestClient(app), service
 
 

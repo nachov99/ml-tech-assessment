@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.schemas import (
     AnalyzeRequest,
@@ -8,24 +10,30 @@ from app.api.schemas import (
 )
 from app.services.transcript_service import TranscriptService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/transcripts", tags=["transcripts"])
 
-_service: TranscriptService | None = None
 
-
-def init_router(service: TranscriptService) -> None:
-    global _service
-    _service = service
+def get_service() -> TranscriptService:
+    raise NotImplementedError("Service dependency not configured")
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_transcript(request: AnalyzeRequest):
+async def analyze_transcript(
+    request: AnalyzeRequest,
+    service: TranscriptService = Depends(get_service),
+):
+    logger.info("Analyzing transcript of length %d", len(request.transcript))
     try:
-        result = _service.analyze(request.transcript)
+        result = service.analyze(request.transcript)
     except ValueError as e:
+        logger.warning("Validation error: %s", str(e))
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error("Unexpected error: %s", str(e))
         raise HTTPException(status_code=502, detail="LLM service unavailable")
+    logger.info("Transcript analyzed successfully: %s", result.id)
     return AnalyzeResponse(
         id=result.id,
         summary=result.summary,
@@ -34,10 +42,16 @@ async def analyze_transcript(request: AnalyzeRequest):
 
 
 @router.get("/{id}", response_model=AnalyzeResponse)
-async def get_transcript(id: str):
-    result = _service.get_by_id(id)
+async def get_transcript(
+    id: str,
+    service: TranscriptService = Depends(get_service),
+):
+    logger.info("Fetching transcript id=%s", id)
+    result = service.get_by_id(id)
     if result is None:
+        logger.warning("Transcript not found: id=%s", id)
         raise HTTPException(status_code=404, detail="Transcript analysis not found")
+    logger.info("Transcript fetched successfully: id=%s", id)
     return AnalyzeResponse(
         id=result.id,
         summary=result.summary,
@@ -46,15 +60,22 @@ async def get_transcript(id: str):
 
 
 @router.post("/analyze-batch", response_model=BatchAnalyzeResponse)
-async def analyze_batch(request: BatchAnalyzeRequest):
+async def analyze_batch(
+    request: BatchAnalyzeRequest,
+    service: TranscriptService = Depends(get_service),
+):
+    logger.info("Batch analysis requested for %d transcripts", len(request.transcripts))
     if not request.transcripts:
         raise HTTPException(status_code=400, detail="Transcripts list cannot be empty")
     try:
-        results = await _service.analyze_batch(request.transcripts)
+        results = await service.analyze_batch(request.transcripts)
     except ValueError as e:
+        logger.warning("Validation error during batch analysis: %s", str(e))
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error("Unexpected error during batch analysis: %s", str(e))
         raise HTTPException(status_code=502, detail="LLM service unavailable")
+    logger.info("Batch analysis completed successfully for %d transcripts", len(results))
     return BatchAnalyzeResponse(
         results=[
             AnalyzeResponse(
