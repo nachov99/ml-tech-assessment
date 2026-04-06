@@ -6,5 +6,3 @@ class EnvConfigs(pydantic_settings.BaseSettings):
 
     OPENAI_API_KEY: str
     OPENAI_MODEL: str = "gpt-4o-2024-08-06"
-
-
