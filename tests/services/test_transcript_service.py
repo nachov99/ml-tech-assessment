@@ -31,21 +31,21 @@ def test_analyze_returns_analysis():
 def test_analyze_calls_llm_with_correct_args():
     service, llm, repository = _make_service()
     llm.run_completion.return_value = TranscriptAnalysisDTO(
-        summary="s", action_items=[]
+        summary="s", action_items=["a1"]
     )
 
     service.analyze("hello world")
 
     llm.run_completion.assert_called_once()
     args = llm.run_completion.call_args
-    assert "hello world" in args[0][1]  # transcript in user prompt
-    assert args[0][2] is TranscriptAnalysisDTO  # dto type
+    assert "hello world" in args[0][1]
+    assert args[0][2] is TranscriptAnalysisDTO
 
 
 def test_analyze_saves_to_repository():
     service, llm, repository = _make_service()
     llm.run_completion.return_value = TranscriptAnalysisDTO(
-        summary="s", action_items=[]
+        summary="s", action_items=["a1"]
     )
 
     result = service.analyze("transcript")
@@ -110,3 +110,45 @@ async def test_analyze_batch_raises_on_empty_transcript():
 
     with pytest.raises(ValueError, match="Transcript cannot be empty"):
         await service.analyze_batch(["valid", ""])
+
+
+def test_analyze_raises_on_empty_llm_summary():
+    service, llm, repository = _make_service()
+    llm.run_completion.return_value = TranscriptAnalysisDTO(
+        summary="", action_items=["a1"]
+    )
+
+    with pytest.raises(RuntimeError, match="empty summary"):
+        service.analyze("valid transcript")
+
+
+def test_analyze_raises_on_empty_llm_action_items():
+    service, llm, repository = _make_service()
+    llm.run_completion.return_value = TranscriptAnalysisDTO(
+        summary="valid summary", action_items=[]
+    )
+
+    with pytest.raises(RuntimeError, match="no action items"):
+        service.analyze("valid transcript")
+
+
+@pytest.mark.asyncio
+async def test_analyze_batch_raises_on_empty_llm_summary():
+    service, llm, repository = _make_service()
+    llm.run_completion_async = AsyncMock(
+        return_value=TranscriptAnalysisDTO(summary="", action_items=["a1"])
+    )
+
+    with pytest.raises(RuntimeError, match="empty summary"):
+        await service.analyze_batch(["valid transcript"])
+
+
+@pytest.mark.asyncio
+async def test_analyze_batch_raises_on_empty_llm_action_items():
+    service, llm, repository = _make_service()
+    llm.run_completion_async = AsyncMock(
+        return_value=TranscriptAnalysisDTO(summary="valid summary", action_items=[])
+    )
+
+    with pytest.raises(RuntimeError, match="no action items"):
+        await service.analyze_batch(["valid transcript"])

@@ -24,6 +24,11 @@ class TranscriptService:
         logger.info("Calling LLM for single analysis")
         dto = self._llm.run_completion(SYSTEM_PROMPT, user_prompt, TranscriptAnalysisDTO)
         
+        if not dto.summary or not dto.summary.strip():
+            raise RuntimeError("LLM returned an empty summary")
+        if not dto.action_items:
+            raise RuntimeError("LLM returned no action items")
+        
         analysis = TranscriptAnalysis(
             id=str(uuid.uuid4()),
             summary=dto.summary,
@@ -58,6 +63,10 @@ class TranscriptService:
         
         analyses = []
         for dto in results:
+            if not dto.summary or not dto.summary.strip():
+                raise RuntimeError("LLM returned an empty summary")
+            if not dto.action_items:
+                raise RuntimeError("LLM returned no action items")
             analysis = TranscriptAnalysis(
                 id=str(uuid.uuid4()),
                 summary=dto.summary,

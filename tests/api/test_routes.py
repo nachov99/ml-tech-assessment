@@ -22,8 +22,8 @@ def test_analyze_returns_200(client):
         id="abc-123", summary="A summary", action_items=["do this"]
     )
 
-    response = test_client.post(
-        "/transcripts/analyze", json={"transcript": "hello world"}
+    response = test_client.get(
+        "/transcripts/analyze", params={"transcript": "hello world"}
     )
 
     assert response.status_code == 200
@@ -37,7 +37,9 @@ def test_analyze_returns_400_on_empty_transcript(client):
     test_client, service = client
     service.analyze.side_effect = ValueError("Transcript cannot be empty")
 
-    response = test_client.post("/transcripts/analyze", json={"transcript": ""})
+    response = test_client.get(
+        "/transcripts/analyze", params={"transcript": ""}
+    )
 
     assert response.status_code == 400
     assert "empty" in response.json()["detail"].lower()
@@ -113,8 +115,8 @@ def test_analyze_returns_502_on_llm_failure(client):
     test_client, service = client
     service.analyze.side_effect = RuntimeError("connection refused")
 
-    response = test_client.post(
-        "/transcripts/analyze", json={"transcript": "hello"}
+    response = test_client.get(
+        "/transcripts/analyze", params={"transcript": "hello"}
     )
 
     assert response.status_code == 502

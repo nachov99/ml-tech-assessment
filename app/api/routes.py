@@ -3,7 +3,6 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.schemas import (
-    AnalyzeRequest,
     AnalyzeResponse,
     BatchAnalyzeRequest,
     BatchAnalyzeResponse,
@@ -19,19 +18,19 @@ def get_service() -> TranscriptService:
     raise NotImplementedError("Service dependency not configured")
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
+@router.get("/analyze", response_model=AnalyzeResponse)
 async def analyze_transcript(
-    request: AnalyzeRequest,
+    transcript: str,
     service: TranscriptService = Depends(get_service),
 ):
-    logger.info("Analyzing transcript of length %d", len(request.transcript))
+    logger.info("Analyzing transcript of length %d", len(transcript))
     try:
-        result = service.analyze(request.transcript)
+        result = service.analyze(transcript)
     except ValueError as e:
         logger.warning("Validation error: %s", str(e))
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error("Unexpected error: %s", str(e))
+    except Exception:
+        logger.exception("LLM call failed")
         raise HTTPException(status_code=502, detail="LLM service unavailable")
     logger.info("Transcript analyzed successfully: %s", result.id)
     return AnalyzeResponse(

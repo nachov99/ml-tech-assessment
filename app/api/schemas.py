@@ -1,10 +1,6 @@
 import pydantic
 
 
-class AnalyzeRequest(pydantic.BaseModel):
-    transcript: str
-    
-
 class AnalyzeResponse(pydantic.BaseModel):
     id: str
     summary: str
