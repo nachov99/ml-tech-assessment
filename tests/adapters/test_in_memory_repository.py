@@ -38,3 +38,25 @@ def test_save_overwrites_existing():
 
     assert result.summary == "v2"
     assert result.action_items == ["new"]
+
+
+def test_get_all_returns_all_saved():
+    repo = InMemoryTranscriptRepository()
+    a1 = TranscriptAnalysis(id="1", summary="s1", action_items=[])
+    a2 = TranscriptAnalysis(id="2", summary="s2", action_items=[])
+
+    repo.save(a1)
+    repo.save(a2)
+    results = repo.get_all()
+
+    assert len(results) == 2
+    ids = {r.id for r in results}
+    assert ids == {"1", "2"}
+
+
+def test_get_all_returns_empty_list():
+    repo = InMemoryTranscriptRepository()
+
+    results = repo.get_all()
+
+    assert results == []

@@ -41,6 +41,22 @@ async def analyze_transcript(
     )
 
 
+@router.get("/", response_model=list[AnalyzeResponse])
+async def list_transcripts(
+    service: TranscriptService = Depends(get_service),
+):
+    logger.info("Listing all transcript analyses")
+    results = service.get_all()
+    return [
+        AnalyzeResponse(
+            id=r.id,
+            summary=r.summary,
+            action_items=r.action_items,
+        )
+        for r in results
+    ]
+
+
 @router.get("/{id}", response_model=AnalyzeResponse)
 async def get_transcript(
     id: str,

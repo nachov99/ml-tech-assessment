@@ -107,3 +107,53 @@ def test_analyze_batch_returns_400_on_empty_transcript(client):
     )
 
     assert response.status_code == 400
+
+
+def test_analyze_returns_502_on_llm_failure(client):
+    test_client, service = client
+    service.analyze.side_effect = RuntimeError("connection refused")
+
+    response = test_client.post(
+        "/transcripts/analyze", json={"transcript": "hello"}
+    )
+
+    assert response.status_code == 502
+    assert "unavailable" in response.json()["detail"].lower()
+
+
+def test_analyze_batch_returns_502_on_llm_failure(client):
+    test_client, service = client
+    service.analyze_batch = AsyncMock(side_effect=RuntimeError("timeout"))
+
+    response = test_client.post(
+        "/transcripts/analyze-batch",
+        json={"transcripts": ["t1"]},
+    )
+
+    assert response.status_code == 502
+
+
+def test_list_transcripts_returns_200(client):
+    test_client, service = client
+    service.get_all.return_value = [
+        TranscriptAnalysis(id="1", summary="s1", action_items=["a1"]),
+        TranscriptAnalysis(id="2", summary="s2", action_items=["a2"]),
+    ]
+
+    response = test_client.get("/transcripts/")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["id"] == "1"
+    assert data[1]["id"] == "2"
+
+
+def test_list_transcripts_returns_empty_list(client):
+    test_client, service = client
+    service.get_all.return_value = []
+
+    response = test_client.get("/transcripts/")
+
+    assert response.status_code == 200
+    assert response.json() == []

@@ -11,3 +11,6 @@ class InMemoryTranscriptRepository(TranscriptRepository):
     
     def get_by_id(self, id: str) -> TranscriptAnalysis | None:
         return self._storage.get(id)
+    
+    def get_all(self) -> list[TranscriptAnalysis]:
+        return list(self._storage.values())

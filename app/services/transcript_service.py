@@ -36,6 +36,9 @@ class TranscriptService:
     def get_by_id(self, id: str) -> TranscriptAnalysis | None:
         return self._repository.get_by_id(id)
     
+    def get_all(self) -> list[TranscriptAnalysis]:
+        return self._repository.get_all()
+    
     async def analyze_batch(self, transcripts: list[str]) -> list[TranscriptAnalysis]:
         for t in transcripts:
             if not t or not t.strip():
