@@ -9,4 +9,5 @@ class LLm(ABC):
 
     @abstractmethod
     async def run_completion_async(self, system_prompt: str, user_prompt: str, dto: type[pydantic.BaseModel]) -> pydantic.BaseModel:
+        """Async version of run_completion for concurrent batch processing."""
         pass

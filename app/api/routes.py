@@ -7,6 +7,7 @@ from app.api.schemas import (
     BatchAnalyzeRequest,
     BatchAnalyzeResponse,
 )
+from app.domain.exceptions import TranscriptEmptyError, LLMOutputError
 from app.services.transcript_service import TranscriptService
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/transcripts", tags=["transcripts"])
 
 
 def get_service() -> TranscriptService:
-    raise NotImplementedError("Service dependency not configured")
+    raise RuntimeError("Service dependency not configured")
 
 
 @router.get("/analyze", response_model=AnalyzeResponse)
@@ -26,9 +27,12 @@ async def analyze_transcript(
     logger.info("Analyzing transcript of length %d", len(transcript))
     try:
         result = service.analyze(transcript)
-    except ValueError as e:
+    except TranscriptEmptyError as e:
         logger.warning("Validation error: %s", str(e))
         raise HTTPException(status_code=400, detail=str(e))
+    except LLMOutputError as e:
+        logger.error("LLM output validation failed: %s", str(e))
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception:
         logger.exception("LLM call failed")
         raise HTTPException(status_code=502, detail="LLM service unavailable")
@@ -84,9 +88,12 @@ async def analyze_batch(
         raise HTTPException(status_code=400, detail="Transcripts list cannot be empty")
     try:
         results = await service.analyze_batch(request.transcripts)
-    except ValueError as e:
+    except TranscriptEmptyError as e:
         logger.warning("Validation error during batch analysis: %s", str(e))
         raise HTTPException(status_code=400, detail=str(e))
+    except LLMOutputError as e:
+        logger.error("LLM output validation failed during batch: %s", str(e))
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         logger.error("Unexpected error during batch analysis: %s", str(e))
         raise HTTPException(status_code=502, detail="LLM service unavailable")

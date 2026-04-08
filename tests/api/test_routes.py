@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.routes import router, get_service
+from app.domain.exceptions import TranscriptEmptyError, LLMOutputError
 from app.domain.models import TranscriptAnalysis
 
 
@@ -35,7 +36,7 @@ def test_analyze_returns_200(client):
 
 def test_analyze_returns_400_on_empty_transcript(client):
     test_client, service = client
-    service.analyze.side_effect = ValueError("Transcript cannot be empty")
+    service.analyze.side_effect = TranscriptEmptyError("Transcript cannot be empty")
 
     response = test_client.get(
         "/transcripts/analyze", params={"transcript": ""}
@@ -100,7 +101,7 @@ def test_analyze_batch_returns_400_on_empty_list(client):
 def test_analyze_batch_returns_400_on_empty_transcript(client):
     test_client, service = client
     service.analyze_batch = AsyncMock(
-        side_effect=ValueError("Transcript cannot be empty")
+        side_effect=TranscriptEmptyError("Transcript cannot be empty")
     )
 
     response = test_client.post(

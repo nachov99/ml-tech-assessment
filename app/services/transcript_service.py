@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uuid
 
+from app.domain.exceptions import TranscriptEmptyError, LLMOutputError
 from app.domain.models import TranscriptAnalysis
 from app.dto.llm_response import TranscriptAnalysisDTO
 from app.ports.llm import LLm
@@ -18,16 +19,16 @@ class TranscriptService:
         
     def analyze(self, transcript: str) -> TranscriptAnalysis:
         if not transcript or not transcript.strip():
-            raise ValueError("Transcript cannot be empty")
+            raise TranscriptEmptyError("Transcript cannot be empty")
         
         user_prompt = RAW_USER_PROMPT.format(transcript=transcript)
         logger.info("Calling LLM for single analysis")
         dto = self._llm.run_completion(SYSTEM_PROMPT, user_prompt, TranscriptAnalysisDTO)
         
         if not dto.summary or not dto.summary.strip():
-            raise RuntimeError("LLM returned an empty summary")
+            raise LLMOutputError("LLM returned an empty summary")
         if not dto.action_items:
-            raise RuntimeError("LLM returned no action items")
+            raise LLMOutputError("LLM returned no action items")
         
         analysis = TranscriptAnalysis(
             id=str(uuid.uuid4()),
@@ -47,7 +48,7 @@ class TranscriptService:
     async def analyze_batch(self, transcripts: list[str]) -> list[TranscriptAnalysis]:
         for t in transcripts:
             if not t or not t.strip():
-                raise ValueError("Transcript cannot be empty")
+                raise TranscriptEmptyError("Transcript cannot be empty")
         
         logger.info("Calling LLM for %d transcripts concurrently", len(transcripts))
         tasks = [
@@ -64,9 +65,9 @@ class TranscriptService:
         analyses = []
         for dto in results:
             if not dto.summary or not dto.summary.strip():
-                raise RuntimeError("LLM returned an empty summary")
+                raise LLMOutputError("LLM returned an empty summary")
             if not dto.action_items:
-                raise RuntimeError("LLM returned no action items")
+                raise LLMOutputError("LLM returned no action items")
             analysis = TranscriptAnalysis(
                 id=str(uuid.uuid4()),
                 summary=dto.summary,
